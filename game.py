@@ -2,10 +2,39 @@
 
 import sys
 import numpy as np
-# import keras as ke
+
+from keras.models import Sequential
+from keras.layers import Dense
+from keras.optimizers import Adam
+from collections import deque
 
 import pdb
 
+### BEGIN: PLAYERS
+
+learningrate = 0.01
+memory = deque(maxlen=2000)
+discount = 0.95
+
+model = Sequential()
+
+model.add(Dense(units=16, activation='relu', input_dim=9))
+model.add(Dense(units=16, activation='relu'))
+model.add(Dense(9, activation='linear'))
+
+model.compile(loss='mse', optimizer=Adam(lr=learningrate))
+
+pdb.set_trace()
+
+# model.fit(state, reward_value, epochs=1, verbose=0)
+# prediction = model.predict(state)
+# target = reward + gamma * np.amax(model.predict(next_state))
+#
+# def remember(state, action, reward, next_state, done):
+#     memory.append((state, action, reward, next_state, done))
+
+
+### BEGIN: GAME LOGIC
 
 def apply_move(x, y, wp, bd):
     bd[x,y] = wp
@@ -50,8 +79,8 @@ def main():
     print("Congrats player {}, you won!".format(whichplayer))
     main()
 
-if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        sys.exit(0)
+# if __name__ == "__main__":
+#     try:
+#         main()
+#     except KeyboardInterrupt:
+#         sys.exit(0)
