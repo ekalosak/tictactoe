@@ -1,40 +1,52 @@
 # Python 3.5.2 :: Anaconda 4.2.0 (x86_64)
-
-import sys
-import numpy as np
-
-from keras.models import Sequential
-from keras.layers import Dense
-from keras.optimizers import Adam
-from collections import deque
+# Python 3.7.4
 
 import pdb
 
-### BEGIN: PLAYERS
+import sys
+import logging
+import argparse
+import numpy as np
 
-learningrate = 0.01
-memory = deque(maxlen=2000)
-discount = 0.95
+# TODO implement real logging
 
-model = Sequential()
+# TODO: implement save and load for model
+def new_model():
+    """Initialize new Keras model with fixed architecture"""
+    from keras.models import Sequential
+    from keras.layers import Dense
+    from keras.optimizers import Adam
+    from collections import deque
+    model = Sequential()
+    model.add(Dense(units=16, activation='relu', input_dim=9))
+    model.add(Dense(units=16, activation='relu'))
+    model.add(Dense(9, activation='linear'))
+    model.compile(loss='mse', optimizer=Adam(lr=learningrate))
+    return(model)
 
-model.add(Dense(units=16, activation='relu', input_dim=9))
-model.add(Dense(units=16, activation='relu'))
-model.add(Dense(9, activation='linear'))
+def new_memory():
+    memory = deque(maxlen=2000)
+    return(memory)
 
-model.compile(loss='mse', optimizer=Adam(lr=learningrate))
+class Agent(object):
+    def __init__(self):
+        self.model = new_model()
+        self.memory = new_memory()
+        self.learningrate = 0.01
+        self.discount = 0.95
 
-pdb.set_trace()
-
-# model.fit(state, reward_value, epochs=1, verbose=0)
-# prediction = model.predict(state)
-# target = reward + gamma * np.amax(model.predict(next_state))
-#
-# def remember(state, action, reward, next_state, done):
-#     memory.append((state, action, reward, next_state, done))
+    # model.fit(state, reward_value, epochs=1, verbose=0)
+    # prediction = model.predict(state)
+    # target = reward + gamma * np.amax(model.predict(next_state))
+    #
+    # def remember(state, action, reward, next_state, done):
+    #     memory.append((state, action, reward, next_state, done))
 
 
-### BEGIN: GAME LOGIC
+
+def new_board():
+    board = np.matrix([[0,0,0], [0,0,0], [0,0,0]])
+    return(board)
 
 def apply_move(x, y, wp, bd):
     bd[x,y] = wp
@@ -59,11 +71,62 @@ def won(bd):
     if (b2.diagonal() == 1).all() or (b2.diagonal() == 2).all(): r = True
     return(r)
 
-def main():
-    gameover = False
-    board = np.matrix([[0,0,0], [0,0,0], [0,0,0]])
-    whichplayer = 1
+class Board(object):
+    def __init__(self):
+        self.state = new_board()
+        self.gameover = False
+        self.whichplayer = 1
 
+    def __repr__(self):
+        print("<BOARD>")
+        print("It's player {}'s turn.".format(self.whichplayer))
+        print(self.state)
+
+    def _is_legal(self, x, y):
+        r = True
+        if x > 2 or x < 0: r = False
+        if y > 2 or y < 0: r = False
+        if self.state[x,y] != 0: r = False
+        return(r)
+
+    def _apply_move(self, x, y, wp):
+        self.state[x,y] = wp
+
+    def _next_player(self):
+        self.whichplayer = (self.whichplayer % 2) + 1
+
+    def move(self, x, y, wp):
+        """If move is legal, apply it. Return reward."""
+        if self._is_legal(x, y):
+            r = 0.1 # small reward for legal move
+            self._apply_move(x, y, wp)
+            self._next_player()
+        else:
+            r = -0.1 # negative reward for illegal move
+        if won # TODO: continue here
+
+def train():
+    """Play a fixed number of games
+    In each game, agent moves and gets rewards.
+    """
+    epoch = 10
+    agents = (Agent(), Agent())
+    for ng in range(epoch):
+        print("Starting game {}".format(ng))
+        bd = Board()
+        print(bd)
+        while not bd.gameover:
+            agent = agents[bd.whichplayer-1]
+            pm = agent.propose_move()
+            r = bd.move(pm)
+            agent.apply_reward(r)
+
+def game():
+    """Interactive gameloop for playing 2 humans in cmdline"""
+    # TODO: use Board
+    gameover = False
+    board = new_board()
+    whichplayer = 1
     while not gameover:
         print(board)
         i = input("Player {}, please enter your move: ".format(whichplayer))
@@ -75,12 +138,19 @@ def main():
             else: whichplayer = (whichplayer % 2) + 1
         else:
             print("Illegal move!")
-
     print("Congrats player {}, you won!".format(whichplayer))
-    main()
+    return(whichplayer) # return who won
 
-# if __name__ == "__main__":
-#     try:
-#         main()
-#     except KeyboardInterrupt:
-#         sys.exit(0)
+def main():
+    parser = argparse.ArgumentParser(description='TicTacToe game')
+    parser.add_argument('--train', help='Train the model',
+        default=False, action='store_true')
+    args = parser.parse_args()
+    if not args.train: game()
+    else: train()
+
+def quit(): sys.exit(0)
+
+if __name__ == "__main__":
+    try: main()
+    except KeyboardInterrupt: quit()
